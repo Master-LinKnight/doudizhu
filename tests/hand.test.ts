@@ -149,6 +149,16 @@ describe('连对', () => {
   it('少于 3 对不成立', () => {
     expect(a([...nOf(3, 2), ...nOf(4, 2)]).valid).toBe(false);
   });
+
+  it('最大 12 对（3~A 全连，24 张）', () => {
+    const ranks = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, A];
+    expect(a(ranks.flatMap((r) => nOf(r, 2)))).toMatchObject({
+      valid: true,
+      type: 'straight-pairs',
+      rank: A,
+      length: 12,
+    });
+  });
 });
 
 describe('飞机', () => {
@@ -171,6 +181,16 @@ describe('飞机', () => {
 
   it('不含 2（KKK AAA 222 不成立）', () => {
     expect(a([...nOf(13, 3), ...nOf(14, 3), ...nOf(TWO, 3)]).valid).toBe(false);
+  });
+
+  it('最大 12 组（3~A 全连，36 张）', () => {
+    const ranks = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, A];
+    expect(a(ranks.flatMap((r) => nOf(r, 3)))).toMatchObject({
+      valid: true,
+      type: 'airplane',
+      rank: A,
+      length: 12,
+    });
   });
 });
 
