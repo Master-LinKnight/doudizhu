@@ -258,13 +258,65 @@ body {
   animation: shake 0.45s ease-in-out;
 }
 
-.table-controls {
+.table-top-left {
   position: absolute;
   top: 24px;
   left: 24px;
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   z-index: 25;
+}
+
+.table-controls {
+  display: flex;
+  gap: 12px;
+}
+
+/* ---------- 叫牌 / 出牌顺序提示 ---------- */
+.turn-order {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.turn-order-label {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gold-light);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.turn-order-list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel-dark);
+  border: 1px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 14px;
+}
+
+.turn-order-arrow {
+  font-size: 14px;
+  color: var(--gold);
+}
+
+.turn-order-seat {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cream);
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.turn-order-seat.current {
+  color: var(--wood-dark);
+  background: var(--gold);
 }
 
 /* ---------- 座位 ---------- */
@@ -279,8 +331,8 @@ body {
 }
 
 .seat.bottom { bottom: 16px; left: 50%; transform: translateX(-50%); }
-.seat.left { top: 50%; left: 16px; transform: translateY(-50%); }
-.seat.right { top: 50%; right: 16px; transform: translateY(-50%); }
+.seat.left { top: 50%; left: 56px; transform: translateY(-50%); }
+.seat.right { top: 50%; right: 56px; transform: translateY(-50%); }
 .seat.top { top: 16px; left: 50%; transform: translateX(-50%); }
 
 .avatar {
@@ -681,6 +733,51 @@ body {
 .btn-danger { background: var(--red); color: var(--cream); }
 .btn-redeal { background: var(--gold); color: var(--wood-dark); }
 
+/* ---------- 回合箭头指示 ---------- */
+.turn-arrow {
+  position: absolute;
+  width: 0;
+  height: 0;
+  z-index: 30;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.45));
+  animation: arrow-pulse 1s ease-in-out infinite;
+}
+
+.turn-arrow.down {
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 14px solid var(--gold);
+}
+.turn-arrow.left {
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-right: 14px solid var(--gold);
+}
+.turn-arrow.right {
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+  border-left: 14px solid var(--gold);
+}
+.turn-arrow.up {
+  border-left: 11px solid transparent;
+  border-right: 11px solid transparent;
+  border-bottom: 14px solid var(--gold);
+}
+
+/* 左/右座位：箭头紧贴座位靠桌子中心一侧，与头像同高 */
+.seat.left .turn-arrow { right: -16px; top: 20px; }
+.seat.right .turn-arrow { left: -16px; top: 20px; }
+.seat.top .turn-arrow { top: 62px; left: 50%; margin-left: -11px; }
+
+/* 人类（底部）：箭头悬浮在 seat-info 上方，指向下 */
+.human-info .turn-arrow { top: -18px; left: 50%; margin-left: -12px; }
+
+@keyframes arrow-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* ---------- 回合倒计时 / 不出提示 ---------- */
 .turn-timer {
   position: absolute;
@@ -705,6 +802,14 @@ body {
   font-weight: 800;
   color: var(--gold);
   line-height: 1;
+}
+
+.turn-timer.urgent {
+  border-color: var(--red);
+}
+
+.turn-timer.urgent .turn-timer-seconds {
+  color: var(--red);
 }
 
 .pass-hint {

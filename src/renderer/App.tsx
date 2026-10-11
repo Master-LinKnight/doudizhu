@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { CardType, ModeConfig } from '../game/types.js';
 import { THREE_PLAYER } from '../game/types.js';
 import type { GameState } from '../game/engine.js';
 import { createGame, bid, play, pass } from '../game/engine.js';
+import { turnSeconds, timeoutAction, TURN_SECONDS } from '../game/timeout.js';
 import { isValidPlay } from '../game/rules.js';
 import { analyzeHand } from '../game/hand.js';
 import { randomSeed, hashSeed, createRng } from '../game/fairness.js';
@@ -10,7 +11,7 @@ import type { AiProvider, Difficulty } from '../game/ai/provider.js';
 import { decidePlay } from '../game/ai/ruleAi.js';
 import { buildAiView, buildBidView } from '../game/ai/isolation.js';
 import { createAiProvider, DEFAULT_LLM_MODEL, type AiSource, type LlmConfig } from '../game/ai/llmProvider.js';
-import { seatPosition, currentTrickActions, latestActionOf, typeLabel, effectCategory, type EffectsLevel } from './ui.js';
+import { seatPosition, currentTrickActions, latestActionOf, typeLabel, effectCategory, turnOrder, type EffectsLevel } from './ui.js';
 import { loadPersisted, savePersisted } from './storage.js';
 import { SettingsScreen } from './components/SettingsScreen.js';
 import { Hand } from './components/Hand.js';
@@ -23,7 +24,6 @@ import './styles/game.css';
 
 const HUMAN_SEAT = 0;
 const AI_DELAY_MS = 5000;
-const TURN_SECONDS = 5;
 
 /** 对指定座位执行一次 AI 决策（统一走 AiProvider；本地规则 / LLM 均在此接入） */
 async function applyAiMove(state: GameState, player: number, provider: AiProvider): Promise<GameState> {
@@ -114,14 +114,38 @@ export default function App() {
     };
   }, [game, provider]);
 
-  // 出牌后停留倒计时：每次出牌/过牌/叫分推进后重置为 5 秒，逐秒递减。
-  // 仅在对家（AI）回合显示，表示「上一家出完牌后停留 5 秒」再行动；人类回合不再倒计时催促。
+  // 回合限时：叫分/出牌阶段每位玩家须在限时内行动（地主首次出牌 45 秒，其余 30 秒）。
+  // 倒计时逐秒递减；超时未行动则自动代打：叫分算「不叫」，出牌可过则过、首出则出最小单张。
   const turnKey = game && game.phase !== 'settled' ? `${game.log.length}:${game.currentPlayer}` : '';
   useEffect(() => {
-    if (!turnKey) return;
-    setCountdown(TURN_SECONDS);
+    if (!turnKey || !game) return;
+    const seconds = turnSeconds(game);
+    const isHuman = game.currentPlayer === HUMAN_SEAT;
+    setCountdown(seconds);
     const iv = setInterval(() => setCountdown((c) => (c > 0 ? c - 1 : 0)), 1000);
-    return () => clearInterval(iv);
+    const deadline = setTimeout(() => {
+      const action = timeoutAction(game);
+      const next =
+        action.type === 'bid-pass'
+          ? bid(game, { player: game.currentPlayer, type: 'pass' })
+          : action.type === 'pass'
+            ? pass(game, { player: game.currentPlayer })
+            : play(game, { player: game.currentPlayer, cards: action.cards });
+      setGame(next);
+      if (isHuman) {
+        setMessage(
+          action.type === 'bid-pass'
+            ? '超时，已自动不叫'
+            : action.type === 'pass'
+              ? '超时，已自动不出'
+              : '超时，已自动出最小单张',
+        );
+      }
+    }, seconds * 1000);
+    return () => {
+      clearInterval(iv);
+      clearTimeout(deadline);
+    };
   }, [turnKey]);
 
   // 侦测最新一次出牌，触发牌型特效
@@ -257,18 +281,38 @@ export default function App() {
 
   return (
     <div className={`table ${shaking ? 'shake' : ''}`} key={String(game.seed)}>
-      <div className="table-controls">
-        <button className="btn btn-danger" onClick={backToSettings}>
-          退出牌桌
-        </button>
-        <button className="btn btn-redeal" onClick={restart}>
-          重新发牌
-        </button>
+      <div className="table-top-left">
+        <div className="table-controls">
+          <button className="btn btn-danger" onClick={backToSettings}>
+            退出牌桌
+          </button>
+          <button className="btn btn-redeal" onClick={restart}>
+            重新发牌
+          </button>
+        </div>
+        {game.phase !== 'settled' && (
+          <div className="turn-order">
+            <span className="turn-order-label">
+              {game.phase === 'bidding' ? '叫牌顺序' : '出牌顺序'}
+            </span>
+            <div className="turn-order-list">
+              {turnOrder(game).map((seat, i) => (
+                <Fragment key={seat}>
+                  {i > 0 && <span className="turn-order-arrow">→</span>}
+                  <span className={`turn-order-seat ${seat === game.currentPlayer ? 'current' : ''}`}>
+                    玩家{seat + 1}
+                  </span>
+                </Fragment>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {opponents}
 
       <div className={`human-info ${lastPlayer === HUMAN_SEAT ? 'played' : ''}`}>
+        {myTurn && <div className="turn-arrow down" aria-hidden />}
         {game.phase === 'bidding' && (
           <div className="bid-summary">
             {game.highestBidder >= 0 ? `当前最高：${game.highestBid} 分 · 玩家 ${game.highestBidder + 1}` : '当前无人叫分'}
@@ -312,9 +356,9 @@ export default function App() {
         onHint={humanHint}
       />
 
-      {game.phase !== 'settled' && game.currentPlayer !== HUMAN_SEAT && (
-        <div className="turn-timer">
-          <span>停留</span>
+      {game.phase !== 'settled' && (
+        <div className={`turn-timer ${countdown <= 5 ? 'urgent' : ''}`}>
+          <span>剩余</span>
           <span className="turn-timer-seconds">{countdown}</span>
           <span>秒</span>
         </div>

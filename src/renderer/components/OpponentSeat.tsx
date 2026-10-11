@@ -28,6 +28,7 @@ export function OpponentSeat({
   const backs = Math.min(cardCount, 15);
   return (
     <div className={`seat ${position} ${highlight ? 'played' : ''}`}>
+      {isCurrent && <div className={`turn-arrow ${position === 'top' ? 'up' : position}`} aria-hidden />}
       <div className={`avatar ${isLandlord ? 'landlord' : 'farmer'} ${isCurrent ? 'current' : ''}`}>
         {isLandlord ? '地' : '农'}
       </div>

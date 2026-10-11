@@ -32,6 +32,20 @@ export function seatPosition(seat: number, players: number): SeatPosition {
   return seat === 1 ? 'right' : seat === 2 ? 'top' : 'left';
 }
 
+/** 回合顺序：叫分阶段从首个叫分者起、出牌阶段从地主起，按座位顺时针轮转一圈 */
+export function turnOrder(state: GameState): number[] {
+  const n = state.mode.players;
+  const start =
+    state.phase === 'playing'
+      ? state.landlord
+      : state.bids.length > 0
+        ? state.bids[0].player
+        : state.currentPlayer;
+  const order: number[] = [];
+  for (let i = 0; i < n; i++) order.push((start + i) % n);
+  return order;
+}
+
 /** 当前「一手」内某座位的一次动作：出牌或不出 */
 export type SeatAction =
   | { player: number; kind: 'play'; cards: Card[] }
