@@ -1,0 +1,19 @@
+/* 由 sync-design.mjs 生成 —— 勿手改；改 Pencil 设计稿变量后重跑 npm run sync-design */
+:root {
+  --wood: #7A4A2B;
+  --wood-mid: #6B4020;
+  --wood-dark: #3A2412;
+  --red: #B3372C;
+  --red-deep: #8E2A21;
+  --gold: #C9A227;
+  --gold-light: #E8CE7A;
+  --cream: #F0E6D2;
+  --ink: #5A3721;
+  --ink-gray: #6B5A45;
+  --panel-dark: #2A1A0C;
+  --blue: #2c6fd8;
+  --gray: #5A6B7A;
+  --farmer-blue: #7EB3E8;
+  --serif: 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  --kai: 'Ma Shan Zheng', 'Kaiti SC', 'STKaiti', 'KaiTi', cursive;
+}
